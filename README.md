@@ -135,6 +135,10 @@ spec:
       containers:
       - image: mumoshu/wy:latest
         name: wy
+        command:
+        - wy
+        args:
+        - serve
         ports:
         - containerPort: 8080
         resources: {}
