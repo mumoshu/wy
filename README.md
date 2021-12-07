@@ -6,6 +6,8 @@ ToC:
 
 - [Commands](#commands)
 - [Deployment](#deployment)
+- [Monitoring](#monitoring)
+- [Contributing](#contributing)
 
 ## Commands
 
@@ -97,6 +99,13 @@ $ echo '---' >> wy-serve.yaml
 $ kubectl create service nodeport --node-port=30080 --tcp=8080:8080 --dry-run=client -o=yaml wy-serve >> wy-serve.yaml
 ```
 
+Second, update the deployment's template.metadata.annotations so that a metrics agent can scape metrics from the metrics endpoint.
+
+```yaml
+annotations:
+  prometheus.io/scrape: "true"
+```
+
 This gives you the following manifest file:
 
 <details>
@@ -120,6 +129,8 @@ spec:
       creationTimestamp: null
       labels:
         app: wy-serve
+      annotations:
+        prometheus.io/scrape: "true"
     spec:
       containers:
       - image: mumoshu/wy:latest
@@ -164,6 +175,51 @@ Finally, try accessing it to verify that it's actually working or not:
 ```shell
 $ wy repeat get -count 5 -url http://$AWS_ALB_HOST:30080/
 ```
+
+## Monitoring
+
+`wy serve` exposes various Prometheus metrics via the exposition format.
+It's just a specifially crafted HTTP endpoint so that it can be easily scraped by Prometheus or other products and services that supports it.
+
+One example of such services is [Datadog](https://www.datadoghq.com/).
+Now, let's set it up so that you can view metrics in your Datadog dashboard.
+
+First, install the Datadog agent onto your cluster:
+
+```shell
+$ helm install datadog datadog/datadog \
+  --set datadog.apiKey=$DATADOG_API_KEY \
+  --set datadog.site=datadoghq.com \
+  --set datadog.clusterName=cluster1 \
+  --set datadog.prometheusScrape.enabled=true
+```
+
+Hold on for just dozens of seconds and datadog-agent will be up and running, scraping and forwarding metrics from your `wy-serve` deployment to Datadog.
+
+Browse Datadog dashboard and see the metrics!
+
+## Contributing
+
+We welcome your contribution!
+
+Before submitting your change as a pull request, I'd highly recommend testing it youself.
+
+We provide a few make targets to help that.
+
+First, build a custom docker image with:
+
+```
+$ NAME=$DOCKER_USER/wy make docker-buildx
+$ docker push $DOCKER_USER/wy:latest
+```
+
+Second, deploy wy from the custom image:
+
+```
+$ cat wy-serve.yaml | sed "s/mumoshu/$DOCKER_USER/" | kubectl apply -f -
+```
+
+Finally, run `wy get` against your custom `wy-serve` pods and see if it's really working as intended.
 
 ## Related Projects
 
