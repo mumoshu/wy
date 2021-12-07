@@ -136,7 +136,7 @@ spec:
       - image: mumoshu/wy:latest
         name: wy
         command:
-        - wy
+        - /wy
         args:
         - serve
         ports:
