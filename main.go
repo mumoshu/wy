@@ -60,16 +60,53 @@ func run(args []string) error {
 		return serve(fs.Args()[1:])
 	case "get":
 		return get(fs.Args()[1:])
+	case "repeat":
+		return repeat(fs.Args()[1:])
 	}
 
-	fmt.Fprintf(os.Stderr, "Command %q does not exist\nAvailable commands:\n  server\n  http\n", fs.Arg(0))
+	fmt.Fprintf(os.Stderr, "Command %q does not exist\n\nAvailable commands:\n  serve\n  get\n  repeat\n", fs.Arg(0))
 	fs.Usage()
 	return nil
 }
 
-func get(args []string) error {
-	fs := flag.NewFlagSet(appName, flag.ExitOnError)
+func repeat(args []string) error {
+	fs := flag.NewFlagSet("repeat", flag.ExitOnError)
 
+	var (
+		count int
+	)
+
+	fs.IntVar(&count, "count", 5, "Number of repetitions")
+
+	cmd := args[0]
+
+	switch cmd {
+	case "get":
+		url, print, err := getFlags(fs, args[1:])
+		if err != nil {
+			return err
+		}
+
+		client := &http.Client{
+			Transport: http.DefaultTransport.(*http.Transport).Clone(),
+		}
+
+		for i := 0; i < count; i++ {
+			if err := httpGet(client, url, print); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "Command %q does not exist\nAvailable commands:\n  get\n", cmd)
+	fs.Usage()
+
+	return nil
+}
+
+func getFlags(fs *flag.FlagSet, args []string) (string, bool, error) {
 	var (
 		url   string
 		print bool
@@ -79,6 +116,19 @@ func get(args []string) error {
 	fs.StringVar(&url, "url", "http://localhost:8080/", "The URL to where send request")
 
 	if err := fs.Parse(args); err != nil {
+		return "", false, err
+	}
+
+	fmt.Fprintf(os.Stdout, "%v\n", fs.Args())
+
+	return url, print, nil
+}
+
+func get(args []string) error {
+	fs := flag.NewFlagSet("get", flag.ExitOnError)
+
+	url, print, err := getFlags(fs, args)
+	if err != nil {
 		return err
 	}
 
@@ -86,6 +136,10 @@ func get(args []string) error {
 		Transport: http.DefaultTransport.(*http.Transport).Clone(),
 	}
 
+	return httpGet(client, url, print)
+}
+
+func httpGet(client *http.Client, url string, print bool) error {
 	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(nil))
 	if err != nil {
 		return err
@@ -104,7 +158,7 @@ func get(args []string) error {
 			return err
 		}
 
-		fmt.Fprintf(os.Stdout, string(all))
+		fmt.Fprintf(os.Stdout, string(all)+"\n")
 	}
 
 	return nil
