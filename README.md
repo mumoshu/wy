@@ -45,6 +45,22 @@ Usage of wy:
         The URL to where send request (default "http://localhost:8080/")
 ```
 
+Another use-case of this command is to print all the metrics exposed by the server with [the exposition fomrat](https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md):
+
+```shell
+$ go run . repeat get -count 5 -url http://localhost:8080
+$ go run . repeat get -count 10 -url http://localhost:8080/404
+$ go run . repeat get -count 15 -url http://localhost:8080/500
+$ go run . get -url http://localhost:8080/metrics
+...snip...
+# HELP http_requests_total Count of all HTTP requests
+# TYPE http_requests_total counter
+http_requests_total{code="200",method="get"} 5
+http_requests_total{code="404",method="get"} 10
+http_requests_total{code="500",method="get"} 15
+...snip...
+```
+
 ## repeat get
 
 This command repeatedly runs `wy get` so that the server emits more realistic metrics.

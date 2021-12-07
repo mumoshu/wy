@@ -217,10 +217,12 @@ func serve(args []string) error {
 
 	notfoundHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not Found"))
 	})
 
 	errHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
 	})
 
 	mux := http.NewServeMux()
