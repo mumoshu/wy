@@ -177,7 +177,16 @@ Expose the pods via the NodePort by creating a external loadbalancer. For AWS, y
 Finally, try accessing it to verify that it's actually working or not:
 
 ```shell
+# Via an external loadbalancer
 $ wy repeat get -count 5 -url http://$AWS_ALB_HOST:30080/
+
+# Via the clusterIP service
+$ kubectl exec -it wy-serve-c958ff7df-m5zwr --\
+  /wy repeat get -count 5 -url http://wy-serve.default.svc.cluster.local:8080
+
+# Review metrics
+$ kubectl run -it --rm --image ubuntu:latest ubuntu1 -- /bin/bash -c \
+  'apt update && apt install -y curl && curl wy-serve.default.svc.cluster.local:8080/metrics'
 ```
 
 ## Monitoring
@@ -191,12 +200,31 @@ Now, let's set it up so that you can view metrics in your Datadog dashboard.
 First, install the Datadog agent onto your cluster:
 
 ```shell
-$ helm install datadog datadog/datadog \
+$ helm upgrade --install datadog datadog/datadog \
   --set datadog.apiKey=$DATADOG_API_KEY \
   --set datadog.site=datadoghq.com \
   --set datadog.clusterName=cluster1 \
-  --set datadog.prometheusScrape.enabled=true
+  --set datadog.prometheusScrape.enabled=true \
+  -f <(cat <<EOF
+datadog:
+  kubelet:
+    tlsVerify: false
+EOF
+)
 ```
+
+> Note that apparently `tlsVerify: false` is required only when your cluster local CA isn't
+> accepted by Datadog Agent's kubelet check.
+> It's usually the case when you tried to follow this process in a [kind](https://kind.sigs.k8s.io/).
+>
+> Also note that cluster local CA's cert is usually found at `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`
+> in every pod.
+>
+> If you're curious what's in it, try `kubectl-exec`ing into any pod in your cluster and run
+> ```
+> openssl x509 -in /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -text -noout
+> ```
+> so you'll be able to review it in a human-friendly format.
 
 Hold on for just dozens of seconds and datadog-agent will be up and running, scraping and forwarding metrics from your `wy-serve` deployment to Datadog.
 
