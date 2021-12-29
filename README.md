@@ -181,7 +181,8 @@ Finally, try accessing it to verify that it's actually working or not:
 $ wy repeat get -count 5 -url http://$AWS_ALB_HOST:30080/
 
 # Via the clusterIP service
-$ kubectl exec -it wy-serve-c958ff7df-m5zwr --\
+$ POD_NAME=$(kubectl get po -l app=wy-serve -o json | jq -r .items[0].metadata.name)
+$ kubectl exec -it ${POD_NAME} --\
   /wy repeat get -count 5 -url http://wy-serve.default.svc.cluster.local:8080
 
 # Review metrics
