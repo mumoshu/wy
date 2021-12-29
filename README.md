@@ -253,6 +253,14 @@ $ cat wy-serve.yaml | sed "s/mumoshu/$DOCKER_USER/" | kubectl apply -f -
 
 Finally, run `wy get` against your custom `wy-serve` pods and see if it's really working as intended.
 
+In case you'd like to customize `wy-serve.yaml`, you can use the following snippet for the foundation:
+
+```shell
+kubectl create deployment --image mumoshu/wy:latest --port=8080 --replicas=1 --dry-run=client -o=yaml wy-serve > wy-serve.yaml
+echo '---' >> wy-serve.yaml
+kubectl create service nodeport --node-port=30080 --tcp=8080:8080 --dry-run=client -o=yaml wy-serve >> wy-serve.yaml
+```
+
 ## Related Projects
 
 This project has been inspired by the following projects. Thanks for the authors!
