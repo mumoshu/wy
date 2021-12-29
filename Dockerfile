@@ -23,6 +23,14 @@ RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
   GOARM=$(echo ${TARGETPLATFORM} | cut -d / -f3 | cut -c2-) && \
   go build -a -o wy ./
 
+WORKDIR /workspace/aws
+
+# Build our own minimalistic `aws eks get-token` command
+RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
+  export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
+  GOARM=$(echo ${TARGETPLATFORM} | cut -d / -f3 | cut -c2-) && \
+  go build -a -o aws ./
+
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
@@ -30,6 +38,7 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 
 COPY --from=builder /workspace/wy .
+COPY --from=builder /workspace/aws/aws /bin/aws
 
 USER nonroot:nonroot
 
