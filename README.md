@@ -77,10 +77,20 @@ This command repeatedly runs `wy get` so that the server emits more realistic me
 ```
 $ wy repeat get -h
 Usage of repeat:
+  -argocd-cluster-secret string
+        Name of the Kubernetes secret that contains an ArgoCD-style cluster connection info. If specified, it uses port-forwarding to access the target server
   -count int
         Number of repetitions (default 5)
+  -kubeconfig string
+        Path to the kubeconfig file for port-forwarding (default "kubeconfig.okra")
+  -local-port int
+        Port part of the URL to the server (default 8080)
   -print
         Print response body to stdout (default true)
+  -remote-port int
+        Port part of the URL to the server (default 8080)
+  -service string
+        Name of the Kubernetes service that is connected to the pods. Required if you'd want access the app via Kubernetes port-forwarding
   -url string
         The URL to where send request (default "http://localhost:8080/")
 ```
@@ -184,6 +194,15 @@ $ wy repeat get -count 5 -url http://$AWS_ALB_HOST:30080/
 $ POD_NAME=$(kubectl get po -l app=wy-serve -o json | jq -r .items[0].metadata.name)
 $ kubectl exec -it ${POD_NAME} --\
   /wy repeat get -count 5 -url http://wy-serve.default.svc.cluster.local:8080
+
+# Via the clusterIP over port-forward to the cluster associated to $KUBECONFIG
+$ wy repeat get -count 5 -url http://localhost:8080 \
+  -service wy-serve -remote-port 8080 -local-port 8080
+
+# Via the clusterIP over port-forward to the cluster registered to ArgoCD
+$ wy repeat get -count 5 -url http://localhost:8080 \
+  -argocd-cluster-secret mycluster1 \
+  -service wy-serve  -remote-port 8080 -local-port 8080
 
 # Review metrics
 $ kubectl run -it --rm --image ubuntu:latest ubuntu1 -- /bin/bash -c \
