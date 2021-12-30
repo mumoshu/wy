@@ -28,7 +28,7 @@ func getRestConfig(kubeconfig string, argocdClusterSecret string) (*rest.Config,
 
 		var ns, name string
 
-		if len(nsName) == 0 {
+		if len(nsName) == 1 {
 			ns = "default"
 			name = nsName[0]
 		} else {

@@ -81,6 +81,10 @@ Usage of repeat:
         Name of the Kubernetes secret that contains an ArgoCD-style cluster connection info. If specified, it uses port-forwarding to access the target server
   -count int
         Number of repetitions (default 5)
+  -forever
+        Repeat HTTP requests infinite number of times. If true, -count is ignored
+  -interval duration
+        Delay between each request (default 1s)
   -kubeconfig string
         Path to the kubeconfig file for port-forwarding (default "kubeconfig.okra")
   -local-port int
@@ -97,7 +101,13 @@ Usage of repeat:
 
 ## Deployment
 
-Technically speaking, `wy` can be deployment onto any platform based on baremetal or VMs or containers.
+- [Deploy wy-serve onto a Kubernetes cluster](#deploy-wy-serve-onto-a-kubernetes-cluster)
+- [Calling wy-serve using wy-repeat-get](#calling-wy-serve-using-wy-repeat-get)
+- [Calling wy-serve using wy-repeat in a Kubernetes cluster](#calling-wy-serve-using-wy-repeat-in-a-kubernetes-cluster)
+
+### Deploy wy-serve onto a Kubernetes cluster
+
+Technically speaking, `wy` can be deployed onto any platform based on baremetal or VMs or containers.
 
 That said, I'll show you an example for deploying it onto a Kubernetes cluster.
 
@@ -184,6 +194,8 @@ $ kubectl apply -f wy-serve.yaml
 
 Expose the pods via the NodePort by creating a external loadbalancer. For AWS, you'd use an ALB where the target group is associated to the nodeport of 30080.
 
+### Calling wy-serve using wy-repeat-get
+
 Finally, try accessing it to verify that it's actually working or not:
 
 ```shell
@@ -208,6 +220,60 @@ $ wy repeat get -count 5 -url http://localhost:8080 \
 $ kubectl run -it --rm --image ubuntu:latest ubuntu1 -- /bin/bash -c \
   'apt update && apt install -y curl && curl wy-serve.default.svc.cluster.local:8080/metrics'
 ```
+
+### Calling wy-serve using wy-repeat in a Kubernetes cluster
+
+There are a few cases you'd want to continuously run `wy repeat get` for a certain period from a remote machine/cluster:
+
+- You want to use `wy` as a part of a canary experiment/analysis step (e.g. Argo Rollouts and Flagger)
+- You want to simulate some user traffic on a test cluster
+
+`wy repeat get` has a `-forever` flag that disables `-count` and hence makes `wy repeat get` running forever, periodically sending HTTP requests to the target URL. It sends a request for each `1s` by default and you can change the interval by specifing `-interval DURATION`, where `DURATION` can be a Golang's `time` package style duration string like `1s` for a second and `2m` for 2 minutes, `3h` for 3 hours, and so on.
+
+The following example shows the command that sends a request per each 5 seconds:
+
+```shell
+wy repeat get -forever -interval 5s -url http://localhost:8080 \
+  -argocd-cluster-secret mycluster1 \
+  -service wy-serve  -remote-port 8080 -local-port 8080
+```
+
+Back to the original goal, the above command can be run from a Kubernetes cluster by turning it into a Kubernetes deployment, where the `command` and `args` of the `wy` container reflects the above example.
+
+To scaffold our YAML, run:
+
+```
+kubectl create deployment --image mumoshu/wy:latest --port=8080 --replicas=1 --dry-run=client -o=yaml wy > wy.yaml
+```
+
+Open the generated `wy.yaml` in an editor and add `command` and `args` to the primary container in the pod template:
+
+```
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - image: mumoshu/wy:latest
+        name: wy
+        ports:
+        - containerPort: 8080
+        resources: {}
+        command:
+        - wy
+        - repeat
+        - get
+        args:
+        - -forever
+        - -interval=5s
+        = -url=http://localhost:8080
+        - -argocd-cluster-secret=mycluster1
+        - -service=wy-serve
+        - -remote-port=8080
+        - -local-port=8080
+```
+
+Run `kubectl apply -f wy.yaml` to deploy it and see it works!
 
 ## Monitoring
 

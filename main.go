@@ -75,7 +75,9 @@ func repeat(args []string) error {
 	fs := flag.NewFlagSet("repeat", flag.ExitOnError)
 
 	var (
-		count int
+		count    int
+		interval time.Duration
+		forever  bool
 
 		argocdClusterSecret string
 		service             string
@@ -85,6 +87,8 @@ func repeat(args []string) error {
 	)
 
 	fs.IntVar(&count, "count", 5, "Number of repetitions")
+	fs.DurationVar(&interval, "interval", time.Second, "Delay between each request")
+	fs.BoolVar(&forever, "forever", false, "Repeat HTTP requests infinite number of times. If true, -count is ignored")
 	fs.StringVar(&argocdClusterSecret, "argocd-cluster-secret", "", "Name of the Kubernetes secret that contains an ArgoCD-style cluster connection info. If specified, it uses port-forwarding to access the target server")
 	fs.StringVar(&service, "service", "", "Name of the Kubernetes service that is connected to the pods. Required if you'd want access the app via Kubernetes port-forwarding")
 	fs.IntVar(&localPort, "local-port", 8080, "Port part of the URL to the server")
@@ -127,10 +131,21 @@ func repeat(args []string) error {
 			Transport: http.DefaultTransport.(*http.Transport).Clone(),
 		}
 
-		for i := 0; i < count; i++ {
+		var i int
+
+		for {
+			if !forever {
+				if i >= count {
+					break
+				}
+				i++
+			}
+
 			if err := httpGet(client, url, print); err != nil {
 				return err
 			}
+
+			time.Sleep(interval)
 		}
 
 		return nil
