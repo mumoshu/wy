@@ -266,7 +266,7 @@ spec:
         args:
         - -forever
         - -interval=5s
-        = -url=http://localhost:8080
+        - -url=http://localhost:8080
         - -argocd-cluster-secret=mycluster1
         - -service=wy-serve
         - -remote-port=8080
