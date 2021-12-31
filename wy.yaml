@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: wy
+  name: wy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wy
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: wy
+    spec:
+      containers:
+      - image: mumoshu/wy:latest
+        name: wy
+        ports:
+        - containerPort: 8080
+        resources: {}
+        args:
+        - repeat
+        - get
+        - -forever
+        - -interval=5s
+        - -url=http://localhost:8080
+        - -argocd-cluster-secret=cdk1
+        - -service=wy-serve
+        - -remote-port=8080
+        - -local-port=8080
+        envFrom:
+        - secretRef:
+            name: wy
+            optional: true
+status: {}

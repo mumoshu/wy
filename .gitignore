@@ -1,3 +1,5 @@
 /wy
 kubeconfig*
 .envrc
+wy.secret.yaml
+wy.env

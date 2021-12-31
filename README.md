@@ -275,6 +275,65 @@ spec:
 
 Run `kubectl apply -f wy.yaml` to deploy it and see it works!
 
+If it doesn't run `kubectl logs $POD` and see what's happening.
+
+If you see permission errors, try granting some K8s API permissions required by `wy`:
+
+```
+2021/12/31 05:34:00 Using in-cluster Kubernetes API client
+2021/12/31 05:34:00 secrets "mycluster1" is forbidden: User "system:serviceaccount:default:default" cannot get resource "secrets" in API group "" in the namespace "default"
+```
+
+Usually it's just a `get secret` permission required when you specified `-argocd-cluster-secret`
+
+```
+NS=default
+SA=default
+
+kubectl create role wy --verb=get --resource=secret --dry-run=client -o yaml > wy.rbac.yaml
+echo '---' >> wy.rbac.yaml
+kubectl create rolebinding wy --role=wy --serviceaccount=${NS}:${SA} --dry-run=client -o yaml >> wy.rbac.yaml
+```
+
+Similarly, if you encounter AWS API permission issue, it's usually you're missing any AWS credentials to be used by `wy`:
+
+```
+2021/12/31 05:37:23 Using in-cluster Kubernetes API client
+Error: NoCredentialProviders: no valid providers in chain. Deprecated.
+        For verbose messaging see aws.Config.CredentialsChainVerboseErrors
+Usage:
+  aws eks get-token [flags]
+
+Flags:
+      --cluster-name string   Specify the name of the Amazon EKS  cluster to create a token for.
+  -h, --help                  help for get-token
+      --role-arn string       Assume this role for credentials when signing the token.
+
+2021/12/31 05:37:30 NoCredentialProviders: no valid providers in chain. Deprecated.
+        For verbose messaging see aws.Config.CredentialsChainVerboseErrors
+2021/12/31 05:37:30 Get "https://SOME_ID.gr7.REGION.eks.amazonaws.com/api/v1/namespaces/default/services/wy-serve": getting credentials: exec: executable aws failed with exit code 1
+```
+
+In this case, add the following snippet to your container spec:
+
+```
+envFrom:
+- secretRef:
+    name: wy
+    optional: true
+```
+
+Create a secret with:
+
+```
+cat <<EOS > wy.env && kubectl create secret generic wy --from-env-file=wy.env -o yaml --dry-run=client > wy.secret.yaml
+AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+EOS
+
+kubectl apply -f wy.secret.yaml
+```
+
 ## Monitoring
 
 `wy serve` exposes various Prometheus metrics via the exposition format.
