@@ -1,6 +1,6 @@
-FROM golang:1.17 as builder
-
-ARG TARGETPLATFORM
+# `--platform=$BUILDPLATFORM` makes sure that golang image is always native to the build machine
+# See https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/#:~:text=Preparing%20Dockerfile
+FROM --platform=$BUILDPLATFORM golang:1.17 as builder
 
 WORKDIR /workspace
 
@@ -17,19 +17,15 @@ RUN go mod download
 # Copy the go source
 COPY . .
 
+ARG TARGETOS TARGETARCH
+
 # Build
-RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
-  export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
-  GOARM=$(echo ${TARGETPLATFORM} | cut -d / -f3 | cut -c2-) && \
-  go build -a -o wy ./
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -a -o wy ./
 
 WORKDIR /workspace/aws
 
 # Build our own minimalistic `aws eks get-token` command
-RUN export GOOS=$(echo ${TARGETPLATFORM} | cut -d / -f1) && \
-  export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
-  GOARM=$(echo ${TARGETPLATFORM} | cut -d / -f3 | cut -c2-) && \
-  go build -a -o aws ./
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -a -o aws ./
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

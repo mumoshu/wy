@@ -10,6 +10,7 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 # default list of platforms for which multiarch image is built
+# See https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 ifeq (${PLATFORMS}, )
 	export PLATFORMS="linux/amd64,linux/arm64"
 endif
