@@ -16,6 +16,7 @@ Currently, it provides the following commands:
 - [`serve`](#serve)
 - [`get`](#get)
 - [`repeat get`](#repeat-get)
+- [`print kubeconfig`](#print-kubeconfig) (for exporting ArgoCD cluster secret as kubeconfig)
 
 `serve` is intended to be run inside containers and Kubernetes pods, so that you can interact with it with `wy get` and see e.g. Datadog, Prometheus, Grafana dashboards to see if it works.
 
@@ -97,6 +98,32 @@ Usage of repeat:
         Name of the Kubernetes service that is connected to the pods. Required if you'd want access the app via Kubernetes port-forwarding
   -url string
         The URL to where send request (default "http://localhost:8080/")
+```
+
+### print kubeconfig
+
+```
+Usage of wy-print-kubeconfig:
+  -argocd-cluster-secret string
+        Name of the Kubernetes secret that contains an ArgoCD-style cluster connection info. If specified, it uses port-forwarding to access the target server
+  -kubeconfig string
+        Path to the kubeconfig file for port-forwarding (default "kubeconfig.okra")
+  -set-namespace string
+        Namespace to be set in the default context of the generated kubeconfig (default "default")
+```
+
+This command is useful in a scenario that you want to interact with a specific cluster registered to Argo CD:
+
+```
+# Deploy wy-serve onto the cluster1 cluster
+
+$ wy print kubeconfig -argocd-cluster-secret cluster1 > kubeconfig.cluster1
+$ KUBECONFIG=kubeconfig.cluster1 kubectl apply -f wy-serve.yaml
+
+# Deploy wy client onto another cluster
+
+$ wy print kubeconfig -argocd-cluster-secret cluster2 > kubeconfig.cluster2
+$ KUBECONFIG=kubeconfig.cluster2 kubectl apply -f wy-serve.yaml
 ```
 
 ## Deployment

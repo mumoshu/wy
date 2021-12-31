@@ -58,6 +58,8 @@ func run(args []string) error {
 	}
 
 	switch c := fs.Arg(0); c {
+	case "print":
+		return print(fs.Args()[1:])
 	case "serve":
 		return serve(fs.Args()[1:])
 	case "get":
@@ -301,4 +303,43 @@ func serve(args []string) error {
 	}
 
 	return srv.ListenAndServe()
+}
+
+func print(args []string) error {
+	if args[0] != "kubeconfig" {
+		return fmt.Errorf("the only supported print sub-command is \"kubeconfig\", but you provided %q", args[0])
+	}
+
+	args = args[1:]
+
+	var (
+		argocdClusterSecret string
+		kubeconfigPath      string
+		setNamespace        string
+	)
+
+	fs := flag.NewFlagSet(fmt.Sprintf("%s-print-kubeconfig", appName), flag.ExitOnError)
+	fs.StringVar(&argocdClusterSecret, "argocd-cluster-secret", "", "Name of the Kubernetes secret that contains an ArgoCD-style cluster connection info. If specified, it uses port-forwarding to access the target server")
+	fs.StringVar(&kubeconfigPath, "kubeconfig", os.Getenv("KUBECONFIG"), "Path to the kubeconfig file for port-forwarding")
+	fs.StringVar(&setNamespace, "set-namespace", "default", "Namespace to be set in the default context of the generated kubeconfig")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if argocdClusterSecret == "" {
+		return fmt.Errorf("missing value for the required flag %s", "-argocd-cluster-secret")
+	}
+
+	kubeconfigData, err := getKubeconfig(kubeconfigPath, argocdClusterSecret, setNamespace)
+	if err != nil {
+		return err
+	}
+
+	n, err := os.Stdout.Write(kubeconfigData)
+	if err != nil {
+		return fmt.Errorf("failed to write remaining %d bytes: %w", n, err)
+	}
+
+	return nil
 }
