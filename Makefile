@@ -11,6 +11,9 @@ endif
 
 # default list of platforms for which multiarch image is built
 # See https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
+#
+# If you'd want build against non-64 arm, be sure to set GOARM correctly in the dockerfile too.
+# See https://github.com/golang/go/wiki/GoArm#supported-architectures
 ifeq (${PLATFORMS}, )
 	export PLATFORMS="linux/amd64,linux/arm64"
 endif
