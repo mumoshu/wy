@@ -126,6 +126,28 @@ $ wy print kubeconfig -argocd-cluster-secret cluster2 > kubeconfig.cluster2
 $ KUBECONFIG=kubeconfig.cluster2 kubectl apply -f wy-serve.yaml
 ```
 
+The combination of `wy print kubeconfig` and `kubectl apply` is convenient in order to give it a try with
+[wy repeat get -forever](#calling-wy-serve-using-wy-repeat-in-a-kubernetes-cluster).
+
+For example, a long-running `wy` client command that periodically calls `wy-serve` deployed onto `cluster1` mentioned above would look like:
+
+```
+$ wy repeat get -forever \
+  -argocd-cluster-secret cluster1 -service wy-serve \
+  -remote-port 8080 -local-port 8080 \
+  -url http://localhost:8080
+
+2021/12/31 08:05:49 Using kubeconfig-based Kubernetes API client
+Forwarding service: wy-serve to pod wy-serve-c958ff7df-v95gr ...
+Forwarding from 127.0.0.1:8080 -> 8080
+Forwarding from [::1]:8080 -> 8080
+Handling connection for 8080
+Hello from okra example application.: 1
+Hello from okra example application.: 2
+Hello from okra example application.: 3
+...
+```
+
 ## Deployment
 
 - [Deploy wy-serve onto a Kubernetes cluster](#deploy-wy-serve-onto-a-kubernetes-cluster)
