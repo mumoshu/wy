@@ -322,11 +322,25 @@ spec:
         - -local-port=8080
 ```
 
-Run `kubectl apply -f wy.yaml` to deploy it and see it works!
+Run `kubectl apply -f wy.yaml` to deploy it.
 
-If it doesn't run `kubectl logs $POD` and see what's happening.
+Your pod(s) will shortly be running and running if everything's correctly configured.
+To verify it's availability, run `kubect logs`:
 
-If you see permission errors, try granting some K8s API permissions required by `wy`:
+```
+$ kubectl logs -l app=wy -f
+2021/12/31 08:12:14 Using in-cluster Kubernetes API client
+Forwarding service: wy-serve to pod wy-serve-c958ff7df-v95gr ...
+Forwarding from 127.0.0.1:8080 -> 8080
+Forwarding from [::1]:8080 -> 8080
+Handling connection for 8080
+Hello from okra example application.: 10
+Hello from okra example application.: 11
+Hello from okra example application.: 12
+Hello from okra example application.: 13
+```
+
+If you see permission errors in the logs, try granting some K8s API permissions required by `wy`:
 
 ```
 2021/12/31 05:34:00 Using in-cluster Kubernetes API client
@@ -381,6 +395,21 @@ AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 EOS
 
 kubectl apply -f wy.secret.yaml
+```
+
+In case you see `$POD_NAME does not have a host assigned` error, it's your cluster issue- ensure that you have `Ready` nodes:
+
+```
+2021/12/31 07:36:27 Using kubeconfig-based Kubernetes API client
+Forwarding service: wy-serve to pod wy-serve-c958ff7df-v95gr ...
+panic: error upgrading connection: pod wy-serve-c958ff7df-v95gr does not have a host assigned
+
+goroutine 114 [running]:
+github.com/anthhub/forwarder.portForwardAPod.func1(0xc0000f0d10)
+        /go/pkg/mod/github.com/anthhub/forwarder@v1.1.1-0.20211220023309-47c50bc55038/forwarder.go:177 +0x5e
+created by github.com/anthhub/forwarder.portForwardAPod
+        /go/pkg/mod/github.com/anthhub/forwarder@v1.1.1-0.20211220023309-47c50bc55038/forwarder.go:175 +0x4db
+exit status 2
 ```
 
 ## Monitoring
