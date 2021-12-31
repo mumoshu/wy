@@ -30,7 +30,7 @@ func getRestConfig(kubeconfig string, argocdClusterSecret string) (*rest.Config,
 	return restConfig, nil
 }
 
-func getKubeconfig(kubeconfig string, argocdClusterSecret string, setNamespace string) ([]byte, error) {
+func getClusterRestConfig(kubeconfig string, argocdClusterSecret string) (*rest.Config, error) {
 	restConfig, err := argocd.NewRestConfig(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -51,6 +51,15 @@ func getKubeconfig(kubeconfig string, argocdClusterSecret string, setNamespace s
 	// this keeps the details.
 
 	clusterRestConfig := cluster.RawRestConfig()
+
+	return clusterRestConfig, nil
+}
+
+func getKubeconfig(kubeconfig string, argocdClusterSecret string, setNamespace string) ([]byte, error) {
+	clusterRestConfig, err := getClusterRestConfig(kubeconfig, argocdClusterSecret)
+	if err != nil {
+		return nil, err
+	}
 
 	kubeconfigData, err := argocd.GenerateKubeConfiguration(clusterRestConfig, setNamespace)
 	if err != nil {

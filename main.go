@@ -114,7 +114,9 @@ func repeat(args []string) error {
 					ServiceName: service,
 				},
 			}
-			restConfig, err := getRestConfig(kubeconfigPath, argocdClusterSecret)
+			// forwarder requires rest config without argocd's custom transport
+			// hence we call getClusterRestConfig instead of getRestConfig
+			restConfig, err := getClusterRestConfig(kubeconfigPath, argocdClusterSecret)
 			if err != nil {
 				return err
 			}
